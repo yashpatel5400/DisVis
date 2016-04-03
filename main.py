@@ -1,8 +1,10 @@
-from bokeh.io import output_file, show, vform
+from bokeh.io import output_file, show, vform, hplot
 from bokeh.models import (
   GMapPlot, GMapOptions, ColumnDataSource, Circle, DataRange1d, PanTool, WheelZoomTool, HoverTool, HBox, CustomJS
 )
 from bokeh.models.widgets import Slider
+from bokeh.plotting import figure, show, output_file
+
 import csv, json
 import os
 import requests
@@ -53,13 +55,35 @@ def read_cache(filename):
                 cache_return.append(float("".join(row)))
     return cache_return
 
+def make_legend(color_disease):
+    output_file("legend.html")
+    x = np.linspace(0, 4*np.pi, 100)
+    y = np.sin(x)
+
+    p = figure(width=275, height=275)
+    for key in color_disease:
+        p.circle(x, y, legend=key, 
+            fill_color=color_disease[key], size=20, fill_alpha=0.35)
+    p.legend.orientation = "bottom_left"
+
+    p.axis.visible = None
+    p.legend.glyph_height = 25
+    p.legend.glyph_width = 100
+    p.legend.legend_spacing = 10
+    p.legend.legend_padding = 0
+
+    p.logo = None
+    p.toolbar_location = None
+
+    return p
+
 # Google Maps plot + options
 styles = json.dumps([{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"color":"#000000"},{"lightness":13}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#144b53"},{"lightness":14},{"weight":1.4}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#08304b"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#0c4152"},{"lightness":5}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#0b434f"},{"lightness":25}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"color":"#0b3d51"},{"lightness":16}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"}]},{"featureType":"transit","elementType":"all","stylers":[{"color":"#146474"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#021019"}]}])
 map_options = GMapOptions(lat=15, lng=0, map_type="roadmap",
     zoom=2, styles=styles)
 plot = GMapPlot(
     x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, 
-    title="", plot_width=1200, plot_height=600, title_text_color={"value": "#ffffff"}
+    title="", plot_width=900, plot_height=600, title_text_color={"value": "#ffffff"}
 )
 
 # Read in HIV data
@@ -72,7 +96,9 @@ color_disease = {
     "tuberculosis": "purple"
 }
 
-year = '2014'
+p = make_legend(color_disease)
+
+year = '2001'
 for disease in color_disease:
     print(disease)
     disease_data = readInData('./data/{}.csv'.format(disease))
@@ -129,7 +155,7 @@ for disease in color_disease:
         if type(cur_test).__module__ == np.__name__ or (len(cur_test) == 0):
             cases = 0
         else: cases = int(source_df[source_df.index == index]["cases"])
-        circle = Circle(x="lon", y="lat", size=20 * cases/CASE_SCALE, 
+        circle = Circle(x="lon", y="lat", size=20 * (cases/CASE_SCALE), 
             fill_color=color_disease[disease], fill_alpha=0.35, line_color=None)
         plot.add_glyph(ColumnDataSource(ColumnDataSource.from_df(
             source_df[source_df.index == index])), circle)
@@ -146,5 +172,8 @@ slider = HBox(Slider(start=2000, end=2016, value=2003, step=1, title="Year", cal
 
 # Output the plot and show it
 output_file("./visuals/disease_visual{}.html".format(year))
-layout = vform(plot, slider)
-show(layout)
+plot.logo = None
+plot.toolbar_location = None
+
+pl = hplot(plot, p)
+show(pl)
