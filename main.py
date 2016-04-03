@@ -5,6 +5,8 @@ from bokeh.models import (
 from bokeh.models.widgets import Slider
 from geopy.geocoders import Nominatim
 import csv, json
+import os
+import requests
 
 # Read in csv data
 def readInData(csvString):
@@ -30,11 +32,27 @@ def readInData(csvString):
     dataDict['years'] = years
     return dataDict
 
+def write_cache(filename, array):
+    cache = open(filename, 'w')
+    writer = csv.writer(cache)
+    for values in array:
+        writer.writerow(values)
+    cache.close()
+
+def read_cache(filename):
+    cache_return = []
+    with open(filename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if len(row) != 0:
+                cache_return.append(float("".join(row)))
+    return cache_return
+
 # Google Maps plot + options
 styles = json.dumps([{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"color":"#000000"},{"lightness":13}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#144b53"},{"lightness":14},{"weight":1.4}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#08304b"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#0c4152"},{"lightness":5}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#0b434f"},{"lightness":25}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"color":"#0b3d51"},{"lightness":16}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"}]},{"featureType":"transit","elementType":"all","stylers":[{"color":"#146474"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#021019"}]}])
 map_options = GMapOptions(lat=15, lng=0, map_type="roadmap", zoom=2, styles=styles)
 plot = GMapPlot(
-    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, title="", plot_width=1200, plot_height=600, title_text_color={"value": "#ffffff"}, title_text_font_size={"field": "0pt"}, toolbar_location=None, background_fill_color="black"
+    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, title="", plot_width=1200, plot_height=600, title_text_color={"value": "#ffffff"}, title_text_font_size={"field": "0pt"}, toolbar_location=None, background_fill="black"
 )
 
 # Read in HIV data
@@ -53,15 +71,22 @@ print(hivData['countries'])
 
 # Find latitude and longitude of countries
 geolocator = Nominatim();
-locations = [geolocator.geocode(c) for c in hivData['countries']]
 lats = []
 lons = []
-for i in range(0, len(locations)):
-    if (locations[i] is not None):
-        lats.append(locations[i].latitude)
-        lons.append(locations[i].longitude)
-    else:
-        print(hivData['countries'][i])
+
+if not os.path.exists("./lats_cache.csv"):
+    for c in hivData['countries']:
+        r = requests.get("http://open.mapquestapi.com/nominatim/v1/search.php?key=5cMOU7Rg4xRCH27pndm8YalfVXG1Rc4P&format=json&q=" + c)
+        if (len(r.json()) > 0):
+            lats.append(r.json()[0]['lat'])
+            lons.append(r.json()[0]['lon'])
+        else:
+            print(c) # this shouldn't occur, so fix it when it does
+    write_cache("lats_cache.csv", lats)
+    write_cache("lons_cache.csv", lons)
+else:
+    lats = read_cache("lats_cache.csv")
+    lons = read_cache("lons_cache.csv")
 
 # Data source
 # the year should come from the slider
