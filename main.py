@@ -6,6 +6,7 @@ from bokeh.models.widgets import Slider
 import csv, json
 import os
 import requests
+import numpy as np
 
 # Read in csv data
 def readInData(csvString):
@@ -65,14 +66,16 @@ color_disease = {
     "hiv": "red",
     "leprosy": "yellow",
     "malaria": "teal",
-    #"measles": "blue",
+    "measles": "blue",
     "mumps": "pink",
-    #"tuberculosis": "purple"
+    "tuberculosis": "purple"
 }
 
+year = '2003'
 for disease in color_disease:
+    print(disease)
     disease_data = readInData('./data/{}.csv'.format(disease))
-
+    
     # Find latitude and longitude of countries
     lats = []
     lons = []
@@ -90,11 +93,14 @@ for disease in color_disease:
         lats = read_cache("./{}_lats_cache.csv".format(disease))
         lons = read_cache("./{}_lons_cache.csv".format(disease))
 
+    if year not in disease_data:
+        continue
+
     # Data source
     # the year should come from the slider
     # the cases should come from the disease data
     source = ColumnDataSource(data=dict(lat=lats, lon=lons, 
-        country=disease_data['countries']))
+        country=disease_data['countries'], cases=disease_data[year]))
     # source = ColumnDataSource(data=dict(lat=lats, lon=lons, title="HIV", country="", year=2013, cases=disease_data['2013']))
 
     # Add circles + hover
@@ -102,9 +108,19 @@ for disease in color_disease:
         ("Country", "@country"),
         ("# of Cases", "@cases")
     ])
-    circle = Circle(x="lon", y="lat", size=20, 
-        fill_color=color_disease[disease], fill_alpha=0.25, line_color=None)
-    plot.add_glyph(source, circle)
+
+    source_df = source.to_df()
+    indices = list(source_df.index)
+    for index in indices:
+        CASE_SCALE = 500000
+        cur_test = list(source_df[source_df.index == index]["cases"])[0]
+        if type(cur_test).__module__ == np.__name__ or (len(cur_test) == 0):
+            cases = 0
+        else: cases = int(source_df[source_df.index == index]["cases"])
+        circle = Circle(x="lon", y="lat", size=20 * cases/CASE_SCALE, 
+            fill_color=color_disease[disease], fill_alpha=0.35, line_color=None)
+        plot.add_glyph(ColumnDataSource(ColumnDataSource.from_df(
+            source_df[source_df.index == index])), circle)
 
 # for i in range(0, len(locations)):
 #     # Data source
