@@ -7,6 +7,7 @@ import csv, json
 import os
 import requests
 import numpy as np
+import pandas as pd
 
 # Read in csv data
 def readInData(csvString):
@@ -71,7 +72,7 @@ color_disease = {
     "tuberculosis": "purple"
 }
 
-year = '2003'
+year = '2014'
 for disease in color_disease:
     print(disease)
     disease_data = readInData('./data/{}.csv'.format(disease))
@@ -108,7 +109,19 @@ for disease in color_disease:
         ("# of Cases", "@cases")
     ])
 
-    source_df = source.to_df()
+    cases = source.data['cases']
+    diseaseData = source.data['diseaseData']
+    lat = source.data['lat']
+    lon = source.data['lon']
+    country = source.data['country']
+
+    source_df = pd.DataFrame(index=range(0, len(country)),columns=source.data.keys())
+    source_df['cases'] = cases
+    source_df['diseaseData'] = diseaseData[year]
+    source_df['lat'] = lat
+    source_df['lon'] = lon
+    source_df['country'] = country
+
     indices = list(source_df.index)
     for index in indices:
         CASE_SCALE = 500000
@@ -132,6 +145,6 @@ callback = CustomJS(args=dict(source=source), code="""
 slider = HBox(Slider(start=2000, end=2016, value=2003, step=1, title="Year", callback=callback), width=300)
 
 # Output the plot and show it
-output_file("disease_visual.html")
+output_file("./visuals/disease_visual{}.html".format(year))
 layout = vform(plot, slider)
 show(layout)
