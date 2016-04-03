@@ -86,7 +86,7 @@ plot = GMapPlot(
     title="", plot_width=900, plot_height=600, title_text_color={"value": "#ffffff"}
 )
 
-# Read in HIV data
+# Read in disease data
 color_disease = {
     "hiv": "red",
     "leprosy": "yellow",
@@ -124,13 +124,16 @@ for disease in color_disease:
         continue
 
     # Data source
-    # the year should come from the slider
-    # the cases should come from the disease data
-    source = ColumnDataSource(data=dict(lat=lats, lon=lons, 
+    if disease == 'hiv':
+        disease = disease.upper()
+    else:
+        disease = disease.title()
+    source = ColumnDataSource(data=dict(lat=lats, lon=lons, disease=disease,
         country=disease_data['countries'], diseaseData=disease_data, cases=disease_data[year]))
 
     # Add circles + hover
     hover = HoverTool(tooltips=[
+        ("Disease", "@disease"),
         ("Country", "@country"),
         ("# of Cases", "@cases")
     ])
@@ -140,6 +143,7 @@ for disease in color_disease:
     lat = source.data['lat']
     lon = source.data['lon']
     country = source.data['country']
+    disease = source.data['disease']
 
     source_df = pd.DataFrame(index=range(0, len(country)),columns=source.data.keys())
     source_df['cases'] = cases
@@ -147,6 +151,7 @@ for disease in color_disease:
     source_df['lat'] = lat
     source_df['lon'] = lon
     source_df['country'] = country
+    source_df['disease'] = disease
 
     indices = list(source_df.index)
     for index in indices:
@@ -155,8 +160,8 @@ for disease in color_disease:
         if type(cur_test).__module__ == np.__name__ or (len(cur_test) == 0):
             cases = 0
         else: cases = int(source_df[source_df.index == index]["cases"])
-        circle = Circle(x="lon", y="lat", size=20 * (cases/CASE_SCALE), 
-            fill_color=color_disease[disease], fill_alpha=0.35, line_color=None)
+        circle = Circle(x="lon", y="lat", size=20 * cases/CASE_SCALE, 
+            fill_color=color_disease[disease.lower()], fill_alpha=0.35, line_color=None)
         plot.add_glyph(ColumnDataSource(ColumnDataSource.from_df(
             source_df[source_df.index == index])), circle)
 
