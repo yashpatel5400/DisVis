@@ -100,8 +100,7 @@ for disease in color_disease:
     # the year should come from the slider
     # the cases should come from the disease data
     source = ColumnDataSource(data=dict(lat=lats, lon=lons, 
-        country=disease_data['countries'], cases=disease_data[year]))
-    # source = ColumnDataSource(data=dict(lat=lats, lon=lons, title="HIV", country="", year=2013, cases=disease_data['2013']))
+        country=disease_data['countries'], diseaseData=disease_data, cases=disease_data[year]))
 
     # Add circles + hover
     hover = HoverTool(tooltips=[
@@ -122,24 +121,15 @@ for disease in color_disease:
         plot.add_glyph(ColumnDataSource(ColumnDataSource.from_df(
             source_df[source_df.index == index])), circle)
 
-# for i in range(0, len(locations)):
-#     # Data source
-#     source = ColumnDataSource(data=dict(lat=[locations[i].latitude], lon=[locations[i].longitude]))
-
-#     # Add circles
-#     circle = Circle(x="lon", y="lat", size=20, fill_color="red", fill_alpha=0.7, line_color=None)
-#     plot.add_glyph(source, circle)
-
-# def update(attrname, old, new):
-#     source.data.cases = hivData[str(new)]
-#     print(attrname, old, new)
-
 # Add plot options + slider
 plot.add_tools(PanTool(), WheelZoomTool(), hover)
-# callback = CustomJS(args=dict(source=source), code="""
-#         var data = source.get('data');
-#         var year = cb_obj.get('value');
-slider = HBox(Slider(start=2000, end=2016, value=2013, step=1, title="Year"), width=300)
+callback = CustomJS(args=dict(source=source), code="""
+        var data = source.get('data');
+        var year = cb_obj.get('value');
+        data['cases'] = data['diseaseData'][year];
+        source.trigger('change');
+    """)
+slider = HBox(Slider(start=2000, end=2016, value=2003, step=1, title="Year", callback=callback), width=300)
 
 # Output the plot and show it
 output_file("disease_visual.html")
