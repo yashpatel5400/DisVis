@@ -119,6 +119,57 @@ def clean_tuberculosis():
 
 	df.to_csv("tuberculosis_fixed.csv")
 
+def reformat_tb():
+	filename = "tuberculosis_fixed.csv"
+	df = pd.read_csv(filename)
+	drop_rows = [df.keys()[3]] + list(df.keys()[5:])
+
+	df = df.drop(drop_rows, axis=1)
+	df = df.drop(df.keys()[0], axis=1)
+
+	countries = df["Country"].unique()
+	years = df["Year"].unique()
+
+	df_ref = pd.DataFrame(index=range(0, len(countries)),columns=(["Country"] + list(years)))
+	df_ref["Country"] = countries
+
+	for year in years:
+		cur_year = list(df[df["Year"] == year][df.keys()[-1]])
+		df_ref[year] = cur_year
+
+	df_ref.to_csv("tuberculosis_reformat.csv")
+
+def reformat_ebola():
+	filename = "ebola_fixed.csv"
+	df = pd.read_csv(filename)
+
+	df = df.drop([df.keys()[0]], axis=1)
+	df = df.reindex(df["Country"].sort_values().index)
+
+	df["Year"] = df.apply(lambda row : int(row["Date"][0:4]), axis=1)
+	df = df.drop(["Date"], axis=1)
+
+	all_countries = list(df["Country"].unique())
+	years = list(df["Year"].unique())
+	years.sort()
+
+	df_ref = pd.DataFrame(index=range(0, len(countries)),columns=(["Country"] + years))
+	df_ref["Country"] = countries
+
+	for year in years:
+		countries = list(df[df["Year"] == year]["Country"].unique())
+		year_sums = []
+		for country in all_countries:
+			if country not in countries:
+				year_sums.append(0)
+			else:
+				cur_countries = df[df["Country"] == country]
+				year_sums.append(list(np.sum(
+					cur_countries[cur_countries["Year"] == year]))[1])
+		df_ref[year] = year_sums
+
+	df_ref.to_csv("ebola_reformat.csv")
+	
 def main():
 	clean_ebola()
 	clean_hiv_cases()
