@@ -20,14 +20,16 @@ def readInData(csvString):
 
     countries = []
     for year in years:
-        dataDict[year] = {}
+        dataDict[year] = []
     for row in rows[1:]:
         country = row[0]
         countries.append(country)
         for year in range(2000, 2017):
-            dataDict[str(year)][country] = 0
-        for i in range(1, len(row)):
-            dataDict[rows[0][i]][country] = row[i]
+            if (rows[0].count(str(year)) > 0):
+                i = rows[0].index(str(year))
+                dataDict[str(year)].append(row[i])
+            else:
+                dataDict[str(year)].append(0)
         
     dataDict['countries'] = countries
     dataDict['years'] = years
@@ -61,10 +63,10 @@ plot = GMapPlot(
 # Read in HIV data
 color_disease = {
     "hiv": "red",
-    #"leprosy": "yellow",
-    #"malaria": "teal",
-    "measles": "blue",
-    #"mumps": "pink",
+    "leprosy": "yellow",
+    "malaria": "teal",
+    #"measles": "blue",
+    "mumps": "pink",
     #"tuberculosis": "purple"
 }
 
@@ -97,12 +99,9 @@ for disease in color_disease:
 
     # Add circles + hover
     hover = HoverTool(tooltips=[
-        ("Country","@country")
+        ("Country", "@country"),
+        ("# of Cases", "@cases")
     ])
-    # hover = HoverTool(tooltips=[
-    #     ("Country", "@country"),
-    #     ("# of Cases", "@cases")
-    # ])
     circle = Circle(x="lon", y="lat", size=20, 
         fill_color=color_disease[disease], fill_alpha=0.25, line_color=None)
     plot.add_glyph(source, circle)
@@ -115,16 +114,16 @@ for disease in color_disease:
 #     circle = Circle(x="lon", y="lat", size=20, fill_color="red", fill_alpha=0.7, line_color=None)
 #     plot.add_glyph(source, circle)
 
+# def update(attrname, old, new):
+#     source.data.cases = hivData[str(new)]
+#     print(attrname, old, new)
+
 # Add plot options + slider
 plot.add_tools(PanTool(), WheelZoomTool(), hover)
 # callback = CustomJS(args=dict(source=source), code="""
 #         var data = source.get('data');
 #         var year = cb_obj.get('value');
-#         data['cases'] = disease_data[str(year)];
-#         source.trigger('change');
-#     """)
-# slider = HBox(Slider(start=2000, end=2016, value=2016, step=1, title="Year", callback=callback), width=300
-slider = Slider(start=2000, end=2016, value=2016, step=1, title="Year")
+slider = HBox(Slider(start=2000, end=2016, value=2013, step=1, title="Year"), width=300)
 
 # Output the plot and show it
 output_file("disease_visual.html")
