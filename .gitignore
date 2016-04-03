@@ -63,3 +63,7 @@ target/
 
 # Virtual environment
 venv/
+
+# Cache
+lats_cache.csv
+lons_cache.csv

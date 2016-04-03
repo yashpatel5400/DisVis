@@ -1,32 +1,33 @@
 from bokeh.io import output_file, show, vform
 from bokeh.models import (
-  GMapPlot, GMapOptions, ColumnDataSource, Circle, DataRange1d, PanTool, WheelZoomTool, HoverTool, HBox
+  GMapPlot, GMapOptions, ColumnDataSource, Circle, DataRange1d, PanTool, WheelZoomTool, HoverTool, HBox, CustomJS
 )
 from bokeh.models.widgets import Slider
-from geopy.geocoders import Nominatim
 import csv, json
 import os
 import requests
 
 # Read in csv data
 def readInData(csvString):
+    # dataDict is a dictionary that stores: {'countries': '...', 'years': '...', '2016': {'U.S.A.': 2000}, ...}
     dataDict = {}
     rows = []
-    years = []
+    years = [str(i) for i in range(2000, 2017)]
     with open(csvString, newline='') as csvFile:
         diseaseReader = csv.reader(csvFile, delimiter=',', quotechar='|')
         for row in diseaseReader:
             rows.append(row)
 
     countries = []
-    for year in rows[0][1:]:
-        years.append(year)
+    for year in years:
         dataDict[year] = {}
     for row in rows[1:]:
         country = row[0]
         countries.append(country)
-        for i in range(0, len(row) - 1):
-            dataDict[years[i]][country] = row[i+1]
+        for year in range(2000, 2017):
+            dataDict[str(year)][country] = 0
+        for i in range(1, len(row)):
+            dataDict[rows[0][i]][country] = row[i]
         
     dataDict['countries'] = countries
     dataDict['years'] = years
@@ -52,28 +53,15 @@ def read_cache(filename):
 styles = json.dumps([{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"color":"#000000"},{"lightness":13}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#144b53"},{"lightness":14},{"weight":1.4}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#08304b"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#0c4152"},{"lightness":5}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#0b434f"},{"lightness":25}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"color":"#0b3d51"},{"lightness":16}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"}]},{"featureType":"transit","elementType":"all","stylers":[{"color":"#146474"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#021019"}]}])
 map_options = GMapOptions(lat=15, lng=0, map_type="roadmap", zoom=2, styles=styles)
 plot = GMapPlot(
-    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, title="", plot_width=1200, plot_height=600, title_text_color={"value": "#ffffff"}, title_text_font_size={"field": "0pt"}, toolbar_location=None, background_fill="black"
+    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, title="", plot_width=1200, plot_height=600, title_text_color={"value": "#ffffff"}
 )
 
 # Read in HIV data
 hivData = readInData('data/hiv.csv')
-print(hivData['countries'])
-# print(hivData)
-
-# Read in ebola data
-# ebolaData = readInData('data/ebola.csv')
-# rows = [];
-# with open('data/ebola.csv', newline='') as ebola_csv:
-#     ebola_reader = csv.reader(ebola_csv, delimiter=',', quotechar='|')
-#     for row in ebola_reader:
-#         rows.append(row)
-# countries = set([row[0] for row in rows])
 
 # Find latitude and longitude of countries
-geolocator = Nominatim();
 lats = []
 lons = []
-
 if not os.path.exists("./lats_cache.csv"):
     for c in hivData['countries']:
         r = requests.get("http://open.mapquestapi.com/nominatim/v1/search.php?key=5cMOU7Rg4xRCH27pndm8YalfVXG1Rc4P&format=json&q=" + c)
@@ -99,9 +87,7 @@ hover = HoverTool(tooltips=[
     ("Country","@country")
 ])
 # hover = HoverTool(tooltips=[
-#     ("Disease","@title"),
 #     ("Country", "@country"),
-#     ("Year", "@year"),
 #     ("# of Cases", "@cases")
 # ])
 circle = Circle(x="lon", y="lat", size=20, fill_color="red", fill_alpha=0.7, line_color=None)
@@ -115,8 +101,15 @@ plot.add_glyph(source, circle)
 #     circle = Circle(x="lon", y="lat", size=20, fill_color="red", fill_alpha=0.7, line_color=None)
 #     plot.add_glyph(source, circle)
 
-# Add plot options
+# Add plot options + slider
 plot.add_tools(PanTool(), WheelZoomTool(), hover)
+# callback = CustomJS(args=dict(source=source), code="""
+#         var data = source.get('data');
+#         var year = cb_obj.get('value');
+#         data['cases'] = hivData[str(year)];
+#         source.trigger('change');
+#     """)
+# slider = HBox(Slider(start=2000, end=2016, value=2016, step=1, title="Year", callback=callback), width=300
 slider = HBox(Slider(start=2000, end=2016, value=2016, step=1, title="Year"), width=300)
 
 # Output the plot and show it
