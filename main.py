@@ -4,6 +4,7 @@ from bokeh.models import (
 )
 from bokeh.models.widgets import Slider
 from bokeh.plotting import figure, show, output_file
+from bokeh.document import Document
 
 import csv, json
 import os
@@ -81,10 +82,6 @@ def make_legend(color_disease):
 styles = json.dumps([{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"color":"#000000"},{"lightness":13}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#144b53"},{"lightness":14},{"weight":1.4}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#08304b"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#0c4152"},{"lightness":5}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#0b434f"},{"lightness":25}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#000000"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"color":"#0b3d51"},{"lightness":16}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"}]},{"featureType":"transit","elementType":"all","stylers":[{"color":"#146474"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#021019"}]}])
 map_options = GMapOptions(lat=15, lng=0, map_type="roadmap",
     zoom=2, styles=styles)
-plot = GMapPlot(
-    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, 
-    title="", plot_width=900, plot_height=600, title_text_color={"value": "#ffffff"}
-)
 
 # Read in disease data
 color_disease = {
@@ -98,7 +95,11 @@ color_disease = {
 
 p = make_legend(color_disease)
 
-year = '2014'
+year = '2000'
+plot = GMapPlot(
+    x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options, 
+    title="{} Infectious Spread".format(year), plot_width=900, plot_height=600, title_text_color={"value": "#ffffff"}, webgl=True
+)
 for disease in color_disease:
     print(disease)
     disease_data = readInData('./data/{}.csv'.format(disease))
@@ -182,3 +183,6 @@ plot.toolbar_location = None
 
 pl = hplot(plot, p)
 show(pl)
+
+doc = Document()
+doc.add(pl)
