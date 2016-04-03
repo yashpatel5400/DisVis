@@ -98,7 +98,7 @@ color_disease = {
 
 p = make_legend(color_disease)
 
-year = '2001'
+year = '2014'
 for disease in color_disease:
     print(disease)
     disease_data = readInData('./data/{}.csv'.format(disease))
